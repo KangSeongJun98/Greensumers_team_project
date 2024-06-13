@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+	  <!-- Oracle 테이블의 컬럼이 mem_id 이고, DTO의 필드변수가 memId 일때 매칭이 가능하게 하는 옵션 -->
+	  <setting name="mapUnderscoreToCamelCase" value="true"/> 
+	  <!-- 널 허용 -->
+	  <setting name="jdbcTypeForNull" value="NULL"/>
+	</settings>
+	<!-- mapper vo 매핑 경로를 간략하게 쓸 때 사용 -->
+	<typeAliases>
+		<typeAlias type="com.greensumers.carbonbudget.member.vo.MemberVO" alias="MemberVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.boards.vo.BoardVO" alias="boardVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.boards.vo.ReplyVO" alias="replyVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.AbVO" alias="AbVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.calendar.vo.CalendarVO" alias="calendarVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.IncomeVO" alias="IncomeVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.ExpenseVO" alias="ExpenseVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.BalanceVO" alias="BalanceVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.MonthExVO" alias="MonthExVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.MonthInVO" alias="MonthInVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.AccountSearchVO" alias="AccountSearchVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.accountBook.vo.ExcategoryVO" alias="ExcategoryVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.member.vo.KakaoUserVo" alias="KakaoUserVo"/>
+		<typeAlias type="com.greensumers.carbonbudget.code.vo.CodeVO" alias="CodeVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.survey.vo.CarVO" alias="CarVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.survey.vo.SavingVO" alias="savingVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.survey.vo.ResponseVO" alias="responseVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.comparison.vo.ComparisonVO" alias="ComparisonVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.survey.vo.SimilarityVO" alias="similarityVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.free.vo.FreeBoardVO" alias="FreeBoardVO"/>
+		<typeAlias type="com.greensumers.carbonbudget.free.vo.FreeBoardVO" alias="FreeSearchVO"/>
+	</typeAliases>
+</configuration>

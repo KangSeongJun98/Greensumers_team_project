@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.greensumers.carbonbudget.member.mapper.KakaoUserMapper">
+    
+    <insert id="insertKakaoUser" parameterType="com.greensumers.carbonbudget.member.vo.KakaoUserVo">
+        INSERT INTO kakao_users(id_kakao_user, nickname, email)
+        VALUES(#{id_kakao_user}, #{nickname}, #{email})
+    </insert>
+    
+</mapper>

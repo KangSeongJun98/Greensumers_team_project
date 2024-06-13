@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.greensumers.carbonbudget.free.dao.IFreeBoardDAO">
+
+	<sql id="freeBoardSearch">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+		<choose>
+			<when test='searchType=="T"'>
+				AND a.bo_title LIKE     '%' || #{searchWord} ||'%'
+			</when>
+			<when test='searchType=="W"'>
+            	AND a.bo_writer LIKE    '%' || #{searchWord} ||'%'
+			</when>
+			<when test='searchType=="C"'>
+            	AND a.bo_content LIKE   '%' || #{searchWord} ||'%'
+			</when>
+        </choose>
+		</if>
+		
+		<if test="!@org.apache.commons.lang3.StringUtils@isBlank(searchCategory)">
+				AND a.bo_category = #{searchCategory}
+		</if>
+	</sql>
+
+	<select id="getBoardList" resultType="FreeBoardVO" 
+									parameterType="FreeSearchVO">
+				SELECT *
+FROM (
+    SELECT t1.*, rownum as rnum
+    FROM(
+	            SELECT a.bo_no, a.bo_title
+	                 , a.bo_category
+	                 , b.comm_nm as bo_category_nm
+	                 , a.bo_writer, a.bo_pass
+	                 , a.bo_hit, a.bo_del_yn
+	                 , a.bo_reg_date
+	                 , a.bo_mod_date
+	            FROM free_board a
+	                ,comm_code b
+	            WHERE a.bo_category = b.comm_cd
+	            <include refid="freeBoardSearch"></include>
+	            ORDER BY bo_no desc
+	    )T1
+	)
+	WHERE rnum BETWEEN #{firstRow} AND #{lastRow}
+	</select>
+	<select id="getTotalRowCount" parameterType="FreeSearchVO" resultType="int">
+			SELECT COUNT(*)
+			FROM free_board a
+			WHERE 1=1
+			<include refid="freeBoardSearch"></include>
+	</select>
+	
+	<select id="getBoard" resultType="FreeBoardVO" parameterType="int">
+	 SELECT a.bo_no, a.bo_title
+          , a.bo_category
+          , b.comm_nm as bo_category_nm
+          , a.bo_writer, a.bo_pass
+          , a.bo_hit, a.bo_content
+          , a.bo_reg_date
+          , a.bo_mod_date
+     FROM free_board a
+         ,comm_code b
+     WHERE a.bo_category = b.comm_cd
+	 AND	a.bo_no = #{boNo}		
+	</select>
+	<update id="increaseHit" parameterType="int">
+		UPDATE free_board
+		set bo_hit = bo_hit + 1
+		WHERE bo_no = #{boNo}
+	</update>
+	
+	<insert id="insertFreeBoard" parameterType="FreeBoardVO">
+		INSERT  INTO free_board(bo_no, bo_title, bo_category, bo_writer
+						,bo_pass, bo_content, bo_reg_date, bo_hit)
+		VALUES (seq_free_board.NEXTVAL, #{boTitle}, #{boCategory}, #{boWriter}
+				,#{boPass}, #{boContent}, SYSDATE, 0)
+	</insert>
+	
+	
+	
+</mapper>

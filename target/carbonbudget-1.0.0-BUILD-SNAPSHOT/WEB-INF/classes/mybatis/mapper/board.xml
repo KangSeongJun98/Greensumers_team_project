@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.greensumers.carbonbudget.boards.dao.IBoardDAO">
+
+	<select id="getBoardList" resultType="BoardVO">
+		SELECT a.board_no
+		      ,a.board_title
+		      ,a.mem_id
+		      ,b.mem_nm
+		      ,a.board_content
+		      ,board_date
+		FROM boards a, members b
+		WHERE a.mem_id = b.mem_id
+		AND del_yn = 'N'
+		ORDER BY 1 DESC
+	</select>
+	
+	<insert id="writeBoard" parameterType="BoardVO">
+		INSERT INTO boards(
+				   board_no, 
+                   board_title,     
+                   mem_id,
+                   board_content) 
+		VALUES (
+				(SELECT NVL(MAX(board_no),0)+1 
+		         FROM boards),
+		         #{boardTitle}, 
+		         #{memId},
+		         #{boardContent}
+		         )
+	</insert>
+	
+	<select id="getBoard" resultType="BoardVO" parameterType="int">
+		SELECT a.board_no
+		      ,a.board_title
+		      ,a.board_content
+		      ,a.mem_id
+		      ,b.mem_nm
+		      ,board_date
+		FROM boards a, members b
+		WHERE a.mem_id = b.mem_id
+		AND a.board_no = #{boardNo}
+		AND del_yn = 'N'
+	</select>
+	
+	
+	<update id="updateBoard" parameterType="BoardVO">
+		UPDATE boards
+		SET board_title = #{boardTitle}
+		   ,board_content = #{boardContent}
+		   ,BOARD_DATE = SYSDATE
+		WHERE board_no = #{boardNo}
+	</update>
+	
+	<update id="deleteBoard" parameterType="int">
+		update boards 
+		set del_yn = 'Y'
+		where board_no = #{boardNo}
+	</update>
+	
+	<insert id="writeReply" parameterType="ReplyVO">
+		INSERT INTO replys (reply_no, board_no, mem_id, reply_content)
+			   VALUES(#{replyNo}, #{boardNo}, #{memId}, #{replyContent})
+	</insert>
+	
+	<select id="getReply" parameterType="String" resultType="ReplyVO">
+		select a.reply_no
+		      ,a.mem_id
+		      ,b.mem_nm
+		      ,a.reply_content
+		      ,TO_CHAR(a.reply_date, 'MM/DD HH24:MI') as reply_date
+		from replys a, members b
+		WHERE a.mem_id= b.mem_id
+		AND a.reply_no = #{replyNo}
+		AND a.del_yn = 'N'	
+		ORDER BY 1
+	</select>
+	
+	<select id="getReplyList" parameterType="int" resultType="ReplyVO">
+	select a.reply_no
+	      ,a.mem_id
+	      ,b.mem_nm
+	      ,a.reply_content
+	      ,TO_CHAR(a.reply_date, 'MM/DD HH24:MI') as reply_date
+	from replys a, members b
+	WHERE a.mem_id= b.mem_id
+	AND a.board_no = #{boardNo}
+	AND a.del_yn = 'N'
+	ORDER BY reply_no DESC
+	</select>
+	
+	<update id="replyDel" parameterType="ReplyVO">
+		update
+			(
+		    select *
+		    from replys a, members b
+		    WHERE a.mem_id= b.mem_id
+		    AND a.del_yn = 'N'
+		    ORDER BY reply_date DESC
+			)
+		SET del_yn =  'Y'
+		WHERE  board_no = #{boardNo}
+		AND reply_no = #{replyNo}
+	</update>
+</mapper>

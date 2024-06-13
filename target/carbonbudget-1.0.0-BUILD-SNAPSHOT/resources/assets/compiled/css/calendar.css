@@ -1,0 +1,215 @@
+@font-face {
+	font-family: 'SokchoBadaDotum';
+	src:
+		url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2402_1@1.0/SokchoBadaDotum.woff2')
+		format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}
+
+.chart-text, .price {
+	font-family: SokchoBadaDotum;
+}
+
+.price-container {
+	display: inline-block;
+	min-width: 70px; /* 적절한 너비로 조정하세요 */
+	text-align: right; /* 오른쪽 정렬 */
+	font-family: 'Courier New', Courier, monospace; /* 고정폭 글꼴 사용 */
+}
+
+.fc-daygrid-day-frame {
+	height: 100px;
+	overflow: auto; /* Ensure content doesn't overflow the cell */
+}
+
+/* 수입  */
+.income {
+	color: #6495ED;
+	white-space: normal;
+}
+/* 지출 */
+.expenses {
+	color: #E0115F;
+	white-space: normal;
+}
+
+/* 일요일 날짜: 빨간색 */
+.fc-day-sun .fc-daygrid-day-number {
+	color: red;
+}
+
+/* 토요일 날짜: 파란색 */
+.fc-day-sat .fc-daygrid-day-number {
+	color: blue;
+}
+
+/* Ensure the calendar resizes properly */
+#calendar {
+	max-width: 100%;
+	margin: 0 auto;
+}
+
+/* Responsive font sizes */
+@media ( max-width : 768px) {
+	.fc .fc-daygrid-day-number {
+		font-size: 10px; /* Smaller font size for smaller screens */
+	}
+}
+
+.parentDiv {
+	width: 300px;
+	height: 300px;
+	position: relative;
+	overflow: hidden;
+}
+
+.parentDiv:hover .mainImage {
+	opacity: 0;
+	transform: translate(100%, 100%);
+	transition-delay: 0.5s;
+}
+
+.mainImage {
+	position: relative;
+	transition-duration: 2s;
+}
+
+.hoverImage {
+	position: relative;
+	right: 300px;
+	top: -300px;
+	opacity: 0;
+	transition-duration: 2s;
+}
+
+.parentDiv:hover .hoverImage {
+	opacity: 1;
+	transform: translate(300px, 300px);
+	transition-delay: 0.5s;
+}
+
+/* 테이블 css */
+ .rwd-table {
+     margin: auto;
+     width: 95%;
+     border-collapse: collapse;
+ }
+
+ .rwd-table tr:first-child {
+     background: #5B86EF;
+     color: #fff;
+ }
+
+ .rwd-table tr {
+     border-top: 1px solid #ddd;
+     border-bottom: 1px solid #ddd;
+     background-color: white;
+ }
+
+ /*.rwd-table tr:nth-child(odd):not(:first-child) {*/
+ /*    background-color: #ebf3f9;*/
+ /*}*/
+
+ .rwd-table th {
+     display: none;
+ }
+
+ .rwd-table td {
+     display: block;
+ }
+
+ .rwd-table td:first-child {
+     margin-top: .5em;
+ }
+
+ .rwd-table td:last-child {
+     margin-bottom: .5em;
+ }
+
+ .rwd-table td:before {
+     /*content: attr(data-th) ": ";*/
+     font-weight: bold;
+     width: 120px;
+     display: inline-block;
+     color: #000;
+ }
+
+ .rwd-table th,
+ .rwd-table td {
+     text-align: left;
+ }
+
+ .rwd-table {
+     color: #333;
+     border-radius: .4em;
+     overflow: hidden;
+ }
+
+ .rwd-table tr {
+     border-color: #5B86EF;
+ }
+
+ .rwd-table th,
+ .rwd-table td {
+     padding: .5em 1em;
+ }
+
+ @media screen and (max-width: 601px) {
+     .rwd-table tr:nth-child(2) {
+         border-top: none;
+     }
+
+     .rwd-table th:first-child,
+     .rwd-table td:first-child {
+         font-weight: bold;
+         color: black;
+     }
+
+     .rwd-table td a {
+         text-decoration: none;
+         color: black;
+     }
+ }
+
+ @media screen and (min-width: 600px) {
+     .rwd-table tr:hover:not(:first-child) {
+         background-color: rgba(231, 230, 236, 0.411);
+         /*background-color: #83F4B4;과 동일 opacity*/
+     }
+
+     .rwd-table td:before {
+         display: none;
+     }
+
+     .rwd-table td a {
+         text-decoration: none;
+         color: black;
+     }
+
+     .rwd-table th,
+     .rwd-table td {
+         display: table-cell;
+         padding: .25em .5em;
+     }
+
+     .rwd-table th:first-child,
+     .rwd-table td:first-child {
+         font-weight: bold;
+         padding-left: 0;
+     }
+
+     .rwd-table th:last-child,
+     .rwd-table td:last-child {
+         padding-right: 0;
+     }
+
+     .rwd-table th,
+     .rwd-table td {
+         padding: 1em !important;
+     }
+ }
+ 
+ .table-icon{
+ 	font-size: 30px;
+ }

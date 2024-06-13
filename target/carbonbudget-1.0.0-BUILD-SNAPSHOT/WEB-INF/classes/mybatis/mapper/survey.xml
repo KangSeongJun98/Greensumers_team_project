@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.greensumers.carbonbudget.survey.dao.ISurveyDAO">
+
+	<select id = "getCarInfo" resultType="CarVO" parameterType="CarVO">
+		SELECT *
+		FROM car_info
+		WHERE UPPER(car_model) LIKE UPPER(#{carModel} || '%')
+	</select>
+	
+	
+	<insert id ="surveyDo" parameterType="responseVO">
+			INSERT INTO user_responses (mem_id, q_id, a_id)
+		    VALUES (#{memId}, #{q}, #{a})
+	</insert>
+	
+	
+	<select id ="savingCmpDo" resultType="savingVO" parameterType="similarityVO">
+		SELECT 
+		    mem_id,
+		    SUM(CASE WHEN sm_cat = '적금' THEN price ELSE 0 END) AS savings,
+		    SUM(CASE WHEN sm_cat = '주택청약' THEN price ELSE 0 END) AS housing_subscription,
+		    SUM(CASE WHEN sm_cat = '예금' THEN price ELSE 0 END) AS deposit,
+		    SUM(CASE WHEN sm_cat = '부동산' THEN price ELSE 0 END) AS real_estate,
+		    SUM(CASE WHEN sm_cat = '주식' THEN price ELSE 0 END) AS stocks,
+		    SUM(CASE WHEN sm_cat = '비상금' THEN price ELSE 0 END) AS emergency_fund
+		FROM account_book
+		where TO_CHAR(fin_dy,'YYYY-MM') = #{finDy}
+		and mem_id in
+		<foreach item="item" index="index" collection="members" open="(" separator="," close=")">
+				 #{item}
+		</foreach>
+		and md_cat = '저축'
+		and del_yn = 'N'
+		GROUP BY mem_id
+	</select>
+
+</mapper>

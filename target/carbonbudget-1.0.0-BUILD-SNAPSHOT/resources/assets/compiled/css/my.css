@@ -1,0 +1,30 @@
+.login-form {
+    float: none;
+    margin: 0 auto;
+}
+.card-img-top {
+    height: 15rem;
+    object-fit: cover;
+}
+.card-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* 넘치는 부분을 ... 으로 처리 */
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    /* 원하는 라인 수 */
+    -webkit-box-orient: vertical;
+}
+#sign-up-form {
+    float: none;
+    margin: 0 auto;
+}
+label i{
+    vertical-align:9%
+}
+.vr{
+    width: 3px !important;
+}
+.login-inner{
+    font-size: 80%;
+}

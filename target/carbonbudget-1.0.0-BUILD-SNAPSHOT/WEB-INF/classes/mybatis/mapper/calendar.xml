@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.greensumers.carbonbudget.calendar.dao.ICalendarDAO">
+
+	<select id="getPrice" parameterType="calendarVO" resultType="calendarVO">
+		select TO_CHAR(NVL(SUM(a.price),0), '999,999,999,999,999') AS price,
+		        a.mem_id, 
+		        lg_cat, 
+		        fin_dy
+		from account_book a, members b
+		where a.mem_id = b.mem_id
+		and a.mem_id = #{memId}
+		and a.del_yn = 'N'
+		group by a.mem_id, lg_cat, fin_dy
+	</select>
+	
+	<select id="getTotalPrice" parameterType="calendarVO" resultType="calendarVO">
+	select  NVL(SUM(a.price), 0) AS price,
+	        a.mem_id, 
+	        lg_cat
+	from account_book a, members b
+	where a.mem_id = b.mem_id
+	and a.mem_id = #{memId}
+	and To_CHAR(fin_dy, 'FMYYYY"년" MM"월"') = #{finDy}
+	and a.del_yn = 'N'
+	group by a.mem_id, lg_cat, To_CHAR(fin_dy, 'YYYY/MM')
+	</select>
+	
+	<select id="getDayPrice" parameterType="AbVO" resultType="AbVO">
+		select mem_id,
+		       price,
+		       lg_cat,
+		       md_cat,
+		       sm_cat,
+		       remarks
+		from account_book
+		where mem_id = #{memId}
+		and fin_dy = #{finDy}
+		and del_yn = 'N'
+	</select>
+</mapper>

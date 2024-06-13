@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.greensumers.carbonbudget.comparison.dao.IComparisonDAO">
+
+	<select id="checkInUsageData" parameterType="ComparisonVO" resultType="ComparisonVO">
+		SELECT TO_CHAR(use_ym, 'YYYY-MM') AS use_ym,
+		ROUND(gas_usage*2.176, 1) as gas_usage,
+		ROUND(elctr_usage*0.4781, 1) as elctr_usage,
+		ROUND(gas_usage*2.176+elctr_usage*0.4781, 1) as emissions
+		FROM household_usages 
+		WHERE address_id = #{addressId}
+		ORDER BY use_ym
+	</select>
+
+	
+	<select id="userData" parameterType="ComparisonVO" resultType="ComparisonVO">
+		SELECT TO_CHAR(use_ym, 'YYYY-MM') AS use_ym,
+		ROUND(AVG(gas_usage*2.176), 1) as gas_usage,
+		ROUND(AVG(elctr_usage*0.4781), 1) as elctr_usage,
+		ROUND(AVG(gas_usage*2.176), 1)+ROUND(AVG(elctr_usage*0.4781), 1) as emissions
+		FROM household_usages
+		GROUP BY use_ym
+		ORDER BY use_ym
+	</select>
+	
+	<select id="getCfData" parameterType="MemberVO" resultType="cfVO">
+		SELECT  a.mem_id
+       ,a.year_month
+       ,ROUND(gas_usage* 2.176, 1) as gas_cf
+       ,ROUND(ELCTR_USAGE* 0.4781, 1) as ELCTR_cf
+       ,ROUND(water_usage* 0.237, 1) as water_cf
+       ,CASE 
+            WHEN FUEL_TYPE = '경유' THEN ROUND((fuel_cost*FUEL_EFFICIENCY/1566.31) / (15.35 * 2.582),1) 
+            WHEN FUEL_TYPE = '휘발유' THEN ROUND((fuel_cost*FUEL_EFFICIENCY/1566.31) / (16.04 * 2.097),1)
+            WHEN FUEL_TYPE = 'LPG' THEN ROUND((fuel_cost*FUEL_EFFICIENCY/1566.31) / (11.06 * 1.868),1)
+            ELSE 0
+        END as car_cf
+	FROM(
+	    SELECT 
+	        COALESCE(a.mem_id, b.mem_id) AS mem_id, 
+	        COALESCE(a.Year_Month, b.Year_Month) AS year_month,             --사용 연월
+	        NVL(a.가스사용량, 0) + NVL(b.가스요금, 0) AS gas_usage,         --가스 사용량
+	        NVL(a.전기사용량, 0) + NVL(b.전기요금, 0) AS ELCTR_USAGE,       --전기 사용량
+	        NVL(b.수도요금, 0) AS water_usage,                              --수도 사용량
+	        NVL(b.주유비, 0) AS  fuel_cost,                                 --차량 주유비
+	        car_id
+	    FROM 
+	        (SELECT  
+	            b.mem_id, 
+	            b.mem_addr_id, 
+	            TO_CHAR(a.use_ym,'YYYY-MM') AS Year_Month, 
+	            a.gas_usage AS 가스사용량, 
+	            a.elctr_usage AS 전기사용량
+	        FROM HOUSEHOLD_USAGES a, MEMBERS b
+	        WHERE a.ADDRESS_id = b.mem_addr_id
+	        AND b.mem_id = #{memId}) a
+	    FULL OUTER JOIN 
+	        (SELECT 
+	            b.mem_id,
+	            a.MEM_ADDR_ID,
+	            car_id,
+	            SUM(CASE WHEN sm_cat = '전기요금' THEN CAST(remarks AS NUMBER(10,2)) ELSE 0 END) AS 전기요금,
+	            SUM(CASE WHEN sm_cat = '수도요금' THEN CAST(remarks AS NUMBER(10,2)) ELSE 0 END) AS 수도요금,
+	            SUM(CASE WHEN sm_cat = '가스요금' THEN CAST(remarks AS NUMBER(10,2)) ELSE 0 END) AS 가스요금,
+	            SUM(CASE WHEN sm_cat = '주유비' THEN CAST(price AS NUMBER(10,2)) ELSE 0 END) AS 주유비,
+	            TO_CHAR(b.fin_dy, 'YYYY-MM') AS Year_Month
+	         FROM MEMBERS a, ACCOUNT_BOOK b
+	         WHERE a.mem_id = b.mem_id
+	         AND a.mem_id = #{memId}
+	         AND b.md_cat IN ('주거비', '차량유지비')
+	         AND (
+	                (sm_cat IN ('전기요금', '수도요금', '가스요금') AND REGEXP_LIKE(b.remarks, '^-?\d+(\.\d+)?$'))
+	                OR (sm_cat = '주유비')
+	            )
+	        GROUP BY b.mem_id, a.MEM_ADDR_ID, TO_CHAR(b.fin_dy, 'YYYY-MM'), car_id) b
+	    ON a.mem_id = b.mem_id 
+	    AND a.Year_Month = b.Year_Month
+	    ORDER BY COALESCE(a.Year_Month, b.Year_Month)DESC
+	) a,
+	(SELECT * from car_info) b
+	WHERE a.car_id = b.car_id(+)
+	AND SYSDATE >= TO_DATE(year_month, 'YYYY-MM')
+	</select>
+	
+	
+	<select id="getAvgCfData" resultType="cfVO">
+	SELECT  a.year_month
+       ,ROUND(AVG(ROUND(gas_usage* 2.176, 1)),1) as gas_cf
+       ,ROUND(AVG(ROUND(ELCTR_USAGE* 0.4781, 1)),1) as ELCTR_cf
+       ,ROUND(AVG(ROUND(water_usage* 0.237, 1)),1) as water_cf
+       ,ROUND(
+            AVG(
+                CASE 
+                    WHEN FUEL_TYPE = '경유' THEN ROUND((fuel_cost * FUEL_EFFICIENCY / 1566.31) / (15.35 * 2.582), 1)
+                    WHEN FUEL_TYPE = '휘발유' THEN ROUND((fuel_cost * FUEL_EFFICIENCY / 1566.31) / (16.04 * 2.097), 1)
+                    WHEN FUEL_TYPE = 'LPG' THEN ROUND((fuel_cost * FUEL_EFFICIENCY / 1566.31) / (11.06 * 1.868), 1)
+                    ELSE 0
+                END
+            ), 1) AS car_cf
+
+		FROM(
+		    SELECT 
+		        COALESCE(a.mem_id, b.mem_id) AS mem_id, 
+		        COALESCE(a.Year_Month, b.Year_Month) AS year_month,           --사용 연월
+		        NVL(a.가스사용량, 0) + NVL(b.가스요금, 0) AS gas_usage,         --가스 사용량
+		        NVL(a.전기사용량, 0) + NVL(b.전기요금, 0) AS ELCTR_USAGE,       --전기 사용량
+		        NVL(b.수도요금, 0) AS water_usage,                            --수도 사용량
+		        NVL(b.주유비, 0) AS  fuel_cost,                               --차량 주유비
+		        car_id
+		    FROM 
+		        (SELECT  
+		            b.mem_id, 
+		            b.mem_addr_id, 
+		            TO_CHAR(a.use_ym,'YYYY-MM') AS Year_Month, 
+		            a.gas_usage AS 가스사용량, 
+		            a.elctr_usage AS 전기사용량
+		        FROM HOUSEHOLD_USAGES a, MEMBERS b
+		        WHERE a.ADDRESS_id = b.mem_addr_id) a
+		    FULL OUTER JOIN 
+		        (SELECT 
+		            b.mem_id,
+		            a.MEM_ADDR_ID,
+		            car_id,
+		            SUM(CASE WHEN sm_cat = '전기요금' THEN CAST(remarks AS NUMBER(10,2)) ELSE 0 END) AS 전기요금,
+		            SUM(CASE WHEN sm_cat = '수도요금' THEN CAST(remarks AS NUMBER(10,2)) ELSE 0 END) AS 수도요금,
+		            SUM(CASE WHEN sm_cat = '가스요금' THEN CAST(remarks AS NUMBER(10,2)) ELSE 0 END) AS 가스요금,
+		            SUM(CASE WHEN sm_cat = '주유비' THEN CAST(price AS NUMBER(10,2)) ELSE 0 END) AS 주유비,
+		            TO_CHAR(b.fin_dy, 'YYYY-MM') AS Year_Month
+		         FROM MEMBERS a, ACCOUNT_BOOK b
+		         WHERE a.mem_id = b.mem_id
+		         AND b.md_cat IN ('주거비', '차량유지비')
+		         AND (
+		                (sm_cat IN ('전기요금', '수도요금', '가스요금') AND REGEXP_LIKE(b.remarks, '^-?\d+(\.\d+)?$'))
+		                OR (sm_cat = '주유비')
+		            )
+		        GROUP BY b.mem_id, a.MEM_ADDR_ID, TO_CHAR(b.fin_dy, 'YYYY-MM'), car_id) b
+		    ON a.mem_id = b.mem_id 
+		    AND a.Year_Month = b.Year_Month
+		    ORDER BY COALESCE(a.Year_Month, b.Year_Month)DESC
+		) a,
+		(SELECT * from car_info) b
+		WHERE a.car_id = b.car_id(+)
+		AND SYSDATE >= TO_DATE(year_month, 'YYYY-MM')
+		GROUP BY a.year_month
+		ORDER BY a.Year_Month DESC
+	</select>
+	
+	<select id="getCountId" resultType="int">
+		select count(mem_id) as count_id from members
+	</select>
+
+</mapper>

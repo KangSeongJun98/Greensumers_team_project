@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.greensumers.carbonbudget.accountBook.dao.IAbDAO">
+	<select id = "getabList" resultType="AbVO" parameterType="AccountSearchVO">
+		   
+			    SELECT * 
+				FROM (
+				    SELECT *
+				    FROM (
+				        SELECT a.trx_id
+				             , b.mem_id
+				             , a.lg_cat
+				             , a.md_cat
+				             , a.sm_cat
+				             , a.remarks
+				             , TO_CHAR(a.fin_dy, 'YYYY-MM-DD') as fin_dy
+				             , a.c_dy
+				             , a.price
+				             , ROW_NUMBER() OVER (ORDER BY a.fin_dy DESC) as rn
+				             , a.del_yn
+				        FROM account_book a
+				        JOIN members b ON a.mem_id = b.mem_id
+				        WHERE b.mem_id = #{memId}
+				        AND a.del_yn = 'N'
+						<if	test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+							and to_char(fin_dy, 'YYYY-MM') = #{yearMonth}
+						</if>
+						<if	test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+							and to_char(fin_dy, 'YY/MM') = to_char(sysdate, 'YY/MM')
+						</if>
+                    ORDER BY a.fin_dy desc
+						
+				    )
+				    WHERE rn BETWEEN #{firstRow} AND #{lastRow}
+				)
+				
+	</select>
+	
+	<select id="getTotalCount" parameterType="AccountSearchVO" resultType="int">
+         select count(*) 
+         from( 
+         		select *
+               			FROM account_book a, members b
+         		where a.mem_id = b.mem_id
+         		and b.mem_id = #{memId}
+         		AND a.del_yn = 'N'
+ 				<if	test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+					and to_char(fin_dy, 'YYYY-MM') = #{yearMonth}
+				</if>
+				<if	test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+					and to_char(fin_dy, 'YY/MM') = to_char(sysdate, 'YY/MM')
+				</if>
+         		order by fin_dy desc
+        	 )
+    </select>
+	
+	<!-- 총 수입 -->
+	<select id="getTotalIncome" resultType="IncomeVO" parameterType="AccountSearchVO">
+			select nvl(sum(price), 0) as income
+			from account_book a, members b
+			where lg_cat = '수입'
+		    and a.mem_id = b.mem_id
+		    and a.mem_id = #{memId}
+		    and a.del_yn = 'N'
+		    <if	test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YYYY-MM') = #{yearMonth}
+			</if>
+			<if	test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YY/MM') = to_char(sysdate, 'YY/MM')
+			</if>
+	</select>
+	<!-- 총 지출 -->
+	<select id="getTotalExpense" resultType="ExpenseVO" parameterType="AccountSearchVO" >
+		select nvl(sum(price), 0) as expense
+			from account_book a, members b
+			where lg_cat = '지출'
+		    and a.mem_id = b.mem_id
+		    and a.mem_id = #{memId}
+		    and a.del_yn = 'N'
+		    <if	test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YYYY-MM') = #{yearMonth}
+			</if>
+			<if	test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YY/MM') = to_char(sysdate, 'YY/MM')
+			</if>
+	</select>
+	
+	<!-- 잔액 -->
+	<select id="getBalance" resultType="BalanceVO" parameterType="AccountSearchVO">
+	SELECT a.mem_id, (COALESCE(a.income, 0) - COALESCE(b.expense, 0)) AS balance
+	FROM 
+	    (SELECT lg_cat, SUM(price) AS income, mem_id
+	     FROM account_book
+	     WHERE mem_id = #{memId}
+	     AND lg_cat = '수입'
+	     and del_yn = 'N'
+	     <if	test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YYYY-MM') = #{yearMonth}
+			</if>
+			<if	test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YY/MM') = to_char(sysdate, 'YY/MM')
+			</if>
+	     GROUP BY lg_cat, mem_id) a
+	LEFT JOIN 
+	    (SELECT lg_cat, SUM(price) AS expense, mem_id
+	     FROM account_book
+	     WHERE mem_id = #{memId}
+	     AND lg_cat = '지출'
+	     and del_yn = 'N'
+	    	<if	test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YYYY-MM') = #{yearMonth}
+			</if>
+			<if	test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YY/MM') = to_char(sysdate, 'YY/MM')
+			</if>
+	     GROUP BY lg_cat, mem_id) b 
+	ON a.mem_id = b.mem_id
+	</select>
+	
+	<select id="getmonthEx" resultType="MonthExVO" parameterType="AccountSearchVO">
+	
+	SELECT CASE 
+        WHEN SUBSTR(a.month, 5, 2) = '10' THEN '10'
+        WHEN SUBSTR(a.month, 5, 2) = '11' THEN '11'
+        WHEN SUBSTR(a.month, 5, 2) = '12' THEN '12'
+        ELSE REPLACE(SUBSTR(a.month, 6, 1), '0', '')
+    END as month, 
+    NVL(b.month_ex, 0) AS month_ex
+    FROM (
+        <if test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+            SELECT TO_CHAR(ADD_MONTHS(TO_DATE(#{yearMonth}, 'YYYY-MM'), -(3 - LEVEL)), 'YYYYMM') AS month
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+            SELECT TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -(3 - LEVEL)), 'YYYYMM') AS month
+        </if>
+        FROM dual
+        CONNECT BY LEVEL <![CDATA[<=]]> 3
+    ) a
+    LEFT JOIN (
+        SELECT TO_CHAR(fin_dy, 'YYYYMM') AS month,
+               SUM(price) AS month_ex
+        FROM account_book
+        WHERE lg_cat = '지출'
+          AND mem_id = #{memId}
+          AND del_yn = 'N'
+          <if test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+              AND fin_dy <![CDATA[>=]]> ADD_MONTHS(TO_DATE(#{yearMonth}, 'YYYY-MM'), -3)
+              AND fin_dy <![CDATA[<]]> ADD_MONTHS(TO_DATE(#{yearMonth}, 'YYYY-MM'), 1)
+          </if>
+          <if test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+              AND fin_dy <![CDATA[>=]]> ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -3)
+              AND fin_dy <![CDATA[<]]> TRUNC(SYSDATE, 'MM') + INTERVAL '1' MONTH
+          </if>
+        GROUP BY TO_CHAR(fin_dy, 'YYYYMM')
+    ) b
+    ON a.month = b.month
+    ORDER BY a.month
+
+	
+	</select>
+	
+	<select id="getmonthIn" resultType="MonthInVO" parameterType="AccountSearchVO">
+	
+	SELECT CASE 
+        WHEN SUBSTR(a.month, 5, 2) = '10' THEN '10'
+        WHEN SUBSTR(a.month, 5, 2) = '11' THEN '11'
+        WHEN SUBSTR(a.month, 5, 2) = '12' THEN '12'
+        ELSE REPLACE(SUBSTR(a.month, 6, 1), '0', '')
+    END as month, 
+    NVL(b.month_in, 0) AS month_in
+    FROM (
+        <if test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+            SELECT TO_CHAR(ADD_MONTHS(TO_DATE(#{yearMonth}, 'YYYY-MM'), -(3 - LEVEL)), 'YYYYMM') AS month
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+            SELECT TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -(3 - LEVEL)), 'YYYYMM') AS month
+        </if>
+        FROM dual
+        CONNECT BY LEVEL <![CDATA[<=]]> 3
+    ) a
+    LEFT JOIN (
+        SELECT TO_CHAR(fin_dy, 'YYYYMM') AS month,
+               SUM(price) AS month_in
+        FROM account_book
+        WHERE lg_cat = '수입'
+          AND mem_id = #{memId}
+          AND del_yn = 'N'
+          <if test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+              AND fin_dy <![CDATA[>=]]> ADD_MONTHS(TO_DATE(#{yearMonth}, 'YYYY-MM'), -3)
+              AND fin_dy <![CDATA[<]]> ADD_MONTHS(TO_DATE(#{yearMonth}, 'YYYY-MM'), 1)
+          </if>
+          <if test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+              AND fin_dy <![CDATA[>=]]> ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -3)
+              AND fin_dy <![CDATA[<]]> TRUNC(SYSDATE, 'MM') + INTERVAL '1' MONTH
+          </if>
+        GROUP BY TO_CHAR(fin_dy, 'YYYYMM')
+    ) b
+    ON a.month = b.month
+    ORDER BY a.month
+	
+	</select>
+	
+	<select id="getExCategory" resultType="ExcategoryVO" parameterType="AccountSearchVO">
+	
+	SELECT excategory,
+	       SUM(exprice) AS exprice,
+	       round(ratio_to_report(sum(exprice)) over () * 100) as percentage
+	FROM (
+	    SELECT md_cat AS excategory,
+	           price AS exprice,
+	           ROW_NUMBER() OVER (PARTITION BY md_cat ORDER BY price DESC) AS rn
+	    FROM account_book
+	    WHERE mem_id = #{memId}
+	      AND lg_cat = '지출'
+	      and del_yn = 'N'
+	      <if	test="!@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YYYY-MM') = #{yearMonth}
+			</if>
+			<if	test="@org.apache.commons.lang3.StringUtils@isBlank(yearMonth)">
+				and to_char(fin_dy, 'YY/MM') = to_char(sysdate, 'YY/MM')
+			</if>
+	)
+	WHERE rn <![CDATA[ <= ]]> 5
+	GROUP BY excategory
+	order by exprice desc
+	</select>
+	
+	<!-- 가계부 작성 -->
+	<insert id="abWriteDo" parameterType="AbVO">
+		insert into account_book(
+								trx_id,
+								mem_id, 
+								lg_cat, 
+								fin_dy, 
+								md_cat, 
+								sm_cat, 
+								remarks, 
+								price,
+								c_dy,
+								del_yn 
+								) 
+		values (
+				(select nvl(max(trx_id), 0) + 1
+         		from account_book), 
+		         		#{memId}, 
+		         		#{lgCat}, 
+		         		#{finDy}, 
+		         		#{mdCat}, 
+		         		#{smCat}, 
+		         		#{remarks}, 
+		         		#{price},
+		         		SYSDATE,
+		         		'N'
+		         ) 
+	</insert>
+	<update id ="abDelDo" parameterType="AbVO">
+		update account_book
+		set del_yn = 'Y'
+		where trx_id = #{trxId}
+	</update>
+	
+	
+	<!-- OCR 저장  -->
+	<insert id="OCRSave" parameterType="AbVO">
+		INSERT INTO account_book(trx_id, mem_id, lg_cat, md_cat, sm_cat,
+	                        remarks, fin_dy, price)
+		values( (select nvl(max(trx_id), 0) + 1
+         		from account_book), 
+				#{memId}, 
+				'지출', 
+				'주거비', 
+				#{smCat},
+				#{remarks},
+				#{finDy},
+		        #{price})
+	</insert>
+	
+</mapper>
